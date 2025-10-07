@@ -18,10 +18,10 @@ dotenv.config({ path: '.env.local' });
 class Assistant extends voice.Agent {
   constructor() {
     super({
-      instructions: `You are a helpful voice AI assistant. The user is interacting with you via voice, even if you perceive the conversation as text.
-      You eagerly assist users with their questions by providing information from your extensive knowledge.
-      Your responses are concise, to the point, and without any complex formatting or punctuation including emojis, asterisks, or other symbols.
-      You are curious, friendly, and have a sense of humor.`,
+      instructions: `Vous êtes un assistant vocal médical français. Vous interagissez avec l'utilisateur via la voix, même si vous percevez la conversation comme du texte.
+      Vous assistez les utilisateurs avec leurs questions médicales en fournissant des informations de vos connaissances étendues.
+      Vos réponses sont concises, précises et sans formatage complexe ou ponctuation incluant emojis, astérisques ou autres symboles.
+      Vous êtes curieux, amical et avez un sens de l'humour. Vous répondez toujours en français.`,
 
       // To add tools, specify `tools` in the constructor.
       // Here's an example that adds a simple weather tool.
@@ -52,22 +52,22 @@ export default defineAgent({
     proc.userData.vad = await silero.VAD.load();
   },
   entry: async (ctx: JobContext) => {
-    // Set up a voice AI pipeline using OpenAI, Cartesia, AssemblyAI, and the LiveKit turn detector
+    // Configuration du pipeline vocal avec Deepgram FR Medical, OpenAI GPT-4o Mini, et ElevenLabs
     const session = new voice.AgentSession({
-      // Speech-to-text (STT) is your agent's ears, turning the user's speech into text that the LLM can understand
-      // See all available models at https://docs.livekit.io/agents/models/stt/
-      stt: 'assemblyai/universal-streaming:en',
+      // Speech-to-text (STT) - Deepgram français médical
+      // Voir tous les modèles disponibles sur https://docs.livekit.io/agents/models/stt/
+      stt: 'deepgram/nova-2-fr-medical',
 
-      // A Large Language Model (LLM) is your agent's brain, processing user input and generating a response
-      // See all providers at https://docs.livekit.io/agents/models/llm/
-      llm: 'openai/gpt-4.1-mini',
+      // Large Language Model (LLM) - OpenAI GPT-4o Mini
+      // Voir tous les fournisseurs sur https://docs.livekit.io/agents/models/llm/
+      llm: 'openai/gpt-4o-mini',
 
-      // Text-to-speech (TTS) is your agent's voice, turning the LLM's text into speech that the user can hear
-      // See all available models as well as voice selections at https://docs.livekit.io/agents/models/tts/
-      tts: 'cartesia/sonic-2:9626c31c-bec5-4cca-baa8-f8ba9e84c8bc',
+      // Text-to-speech (TTS) - ElevenLabs
+      // Voir tous les modèles disponibles et sélections de voix sur https://docs.livekit.io/agents/models/tts/
+      tts: 'elevenlabs/multilingual',
 
-      // VAD and turn detection are used to determine when the user is speaking and when the agent should respond
-      // See more at https://docs.livekit.io/agents/build/turns
+      // VAD et détection de tours pour déterminer quand l'utilisateur parle et quand l'agent doit répondre
+      // Voir plus sur https://docs.livekit.io/agents/build/turns
       turnDetection: new livekit.turnDetector.MultilingualModel(),
       vad: ctx.proc.userData.vad! as silero.VAD,
     });
@@ -82,8 +82,8 @@ export default defineAgent({
     //   llm: new openai.realtime.RealtimeModel({ voice: 'marin' }),
     // });
 
-    // Metrics collection, to measure pipeline performance
-    // For more information, see https://docs.livekit.io/agents/build/metrics/
+    // Collecte de métriques pour mesurer les performances du pipeline
+    // Pour plus d'informations, voir https://docs.livekit.io/agents/build/metrics/
     const usageCollector = new metrics.UsageCollector();
     session.on(voice.AgentSessionEventTypes.MetricsCollected, (ev) => {
       metrics.logMetrics(ev.metrics);
@@ -97,19 +97,19 @@ export default defineAgent({
 
     ctx.addShutdownCallback(logUsage);
 
-    // Start the session, which initializes the voice pipeline and warms up the models
+    // Démarrer la session, qui initialise le pipeline vocal et préchauffe les modèles
     await session.start({
       agent: new Assistant(),
       room: ctx.room,
       inputOptions: {
-        // LiveKit Cloud enhanced noise cancellation
-        // - If self-hosting, omit this parameter
-        // - For telephony applications, use `BackgroundVoiceCancellationTelephony` for best results
+        // Annulation de bruit améliorée LiveKit Cloud
+        // - Si auto-hébergement, omettre ce paramètre
+        // - Pour les applications téléphoniques, utiliser `BackgroundVoiceCancellationTelephony` pour de meilleurs résultats
         noiseCancellation: BackgroundVoiceCancellation(),
       },
     });
 
-    // Join the room and connect to the user
+    // Rejoindre la room et se connecter à l'utilisateur
     await ctx.connect();
   },
 });
